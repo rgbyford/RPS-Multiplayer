@@ -20,29 +20,57 @@ var firestore = firebase.firestore();
 
 //admin.initializeApp(functions.config().firebase);
 
-const docRef = firestore.collection('players').doc('b');
+//const docRef = firestore.collection('players').doc('b');
 // or firestore.doc ("players/Pat");
 const collRef = firestore.collection('players');
 const h1 = document.querySelector("#h1");
 const newPlayer = document.querySelector("#newPlayer");
-const addButton = document.querySelector("#addButton");
+const playButton = document.querySelector("#playBtn");
 
-var playerToAdd;
+var sSelf;
+var bReadyToPlay;
+var bPlayed;
 
-addButton.addEventListener("click", function () {
-    playerToAdd = newPlayer.value;
+// "play" button
+playButton.addEventListener("click", function () {
+    var bFoundUser = false;
+    var playerToAdd;
+
+    event.preventDefault();
+    playerToAdd = newPlayer.value.trim();
     console.log("Adding player ", playerToAdd);
-    // document with the same name as First_name within the doc!
-    collRef.doc(playerToAdd).set({
-        First_name: playerToAdd
-    }).then(function () {
-        console.log("Player added");
-    }).catch(function (error) {
-        console.log("Error adding player");
-    });
+    //    const playerRef = firestore.collection('players').doc('q');
+    const playerRef = firestore.collection('players').doc(playerToAdd);
+    playerRef.get()
+        .then(doc => {
+            if (doc.exists) {
+                console.log("Existing player");
+            } else {
+                console.log("New player");
+                collRef.doc(playerToAdd).set({
+                    First_name: playerToAdd
+                }).then(function () {
+                    console.log("Player added");
+                }).catch(function (error) {
+                    console.log("Error adding player");
+                });
+            }
+            collRef.doc(playerToAdd).set({
+                bReadyToPlay: true
+            }).then(function () {
+                console.log("Ready to play set");
+            }).catch(function (error) {
+                console.log("Error setting ready to play");
+            });
+            console.log("All set!");
+            sSelf = playerToAdd;
+            ReadyToPlay("");
+        });
 })
 
+/*
 loadButton.addEventListener("click", function () {
+    event.preventDefault();
     collRef.get().then(snapshot => {
         snapshot.forEach(doc => {
             console.log(doc.id, doc.data(), "FN: ", doc.data().First_name);
@@ -54,164 +82,90 @@ loadButton.addEventListener("click", function () {
         console.log("Finally: ", doc.data().First_name);
     })
 })
-
+*/
 var observer = collRef.onSnapshot(docSnapshot => {
-  console.log(`Received doc snapshot: ${docSnapshot}`);
-  // ...
+    console.log(`Received doc snapshot: ${docSnapshot}`);
+    // ...
 }, err => {
-  console.log(`Encountered error: ${err}`);
+    console.log(`Encountered error: ${err}`);
 });
 
+function ReadyToPlay(sOtherPlayer) {
+    bReadyToPlay = true;
+    collRef.doc(sSelf).set({
+        bReadyToPlay: true
+    }).then(doc => {
+        console.log("Ready to play set");
+        if (sOtherPlayer == "") {
+            //            var queryRef = citiesRef.where('state', '==', 'CA');
+            //            const docRef = firestore.collection('players').doc('Roger');
 
-// Get a database reference to database
-//var db = admin.database();
-//var ref = db.ref("https://rgb-rps.firebaseio.com");
-
-/*
-var docRef = db.collection('players').doc('Roger');
-
-var setRoger = docRef.set({
-    first: 'Roger',
-    last: 'Byford',
-    born: 1953
-});
-
-db.collection('players').get()
-    .then((snapshot) => {
-        snapshot.forEach((doc) => {
-            console.log(doc.id, '=>', doc.data());
-        });
-    })
-    .catch((err) => {
-        console.log('Error getting documents', err);
-    });
-*/
-
-/*
-admin.database().ref('/messages').push({
-    text: "testing the database",
-    author: {
-        uid: "rgb",
-        name: "Roger",
-        email: "rgb@xmail.com"
-    },
-}).then(() => {
-    console.log('New Message written');
-    return (
-        "test done"
-    );
-})
-*/
-
-/*
-var express = require('express');
-var app = express();
-var gameRef;
-
-go();
-
-function go() {
-    var userId;
-
-    app.get('/user/:id', function (request, response) {
-        response.send('user ' + request.params.id);
-        userId = response.params.id;
-    });
-
-    //        var userId = ('Username?', 'Guest');
-    // Consider adding '/<unique id>' if you have multiple games.
-    var gameRef = new Firebase(GAME_LOCATION);
-    gameRef = GAME_LOCATION;
-    assignPlayerNumberAndPlayGame(userId, gameRef);
-};
-
-// The maximum number of players.  If there are already 
-// NUM_PLAYERS assigned, users won't be able to join the game.
-var NUM_PLAYERS = 2;
-
-// The root of your game data.
-var GAME_LOCATION = 'https://rgb-rps.firebaseio.com/';
-
-// A location under GAME_LOCATION that will store the list of 
-// players who have joined the game (up to MAX_PLAYERS).
-var PLAYERS_LOCATION = 'player_list';
-
-// A location under GAME_LOCATION that you will use to store data 
-// for each player (their game state, etc.)
-var PLAYER_DATA_LOCATION = 'player_data';
-
-
-// Called after player assignment completes.
-function playGame(myPlayerNumber, userId, justJoinedGame, gameRef) {
-    var playerDataRef = gameRef.child(PLAYER_DATA_LOCATION).child(myPlayerNumber);
-    alert('You are player number ' + myPlayerNumber +
-        '.  Your data will be located at ' + playerDataRef.toString());
-
-    if (justJoinedGame) {
-        alert('Doing first-time initialization of data.');
-        playerDataRef.set({
-            userId: userId,
-            state: 'game state'
-        });
-    }
-}
-
-// Use transaction() to assign a player number, then call playGame().
-function assignPlayerNumberAndPlayGame(userId, gameRef) {
-    var playerListRef = gameRef.child(PLAYERS_LOCATION);
-    var myPlayerNumber, alreadyInGame = false;
-
-    playerListRef.transaction(function (playerList) {
-        // Attempt to (re)join the given game. Notes:
-        //
-        // 1. Upon very first call, playerList will likely appear null (even if the
-        // list isn't empty), since Firebase runs the update function optimistically
-        // before it receives any data.
-        // 2. The list is assumed not to have any gaps (once a player joins, they 
-        // don't leave).
-        // 3. Our update function sets some external variables but doesn't act on
-        // them until the completion callback, since the update function may be
-        // called multiple times with different data.
-        if (playerList === null) {
-            playerList = [];
-        }
-
-        for (var i = 0; i < playerList.length; i++) {
-            if (playerList[i] === userId) {
-                // Already seated so abort transaction to not unnecessarily update playerList.
-                alreadyInGame = true;
-                myPlayerNumber = i; // Tell completion callback which seat we have.
-                return;
-            }
-        }
-
-        if (i < NUM_PLAYERS) {
-            // Empty seat is available so grab it and attempt to commit modified playerList.
-            playerList[i] = userId; // Reserve our seat.
-            myPlayerNumber = i; // Tell completion callback which seat we reserved.
-            return playerList;
-        }
-
-        // Abort transaction and tell completion callback we failed to join.
-        myPlayerNumber = null;
-    }, function (error, committed) {
-        // Transaction has completed.  Check if it succeeded or we were already in
-        // the game and so it was aborted.
-        if (committed || alreadyInGame) {
-            playGame(myPlayerNumber, userId, !alreadyInGame, gameRef);
+            playerRef = collRef.where('bReadyToPlay', '==', true);
+            //playerRef = firestore.collection('players').where('First_name', '==', 'Roger');
+            //            const playerRef = firestore.collection('players').doc(bReadyToPlay == true);
+            playerRef.get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    if (sOtherPlayer == "") {
+                        sOtherPlayer = doc.data().First_name;
+                        console.log(`You are playing against ${sOtherPlayer}`);
+                        RPSButtons(sOtherPlayer);
+                        // put RPS buttons up and then wait for click
+                    }
+                });
+            });
         } else {
-            alert('Game is full.  Can\'t join. :-(');
+            console.log(`Playing against existing player ${playerToAdd}`);
+            RPSButtons(sOtherPlayer);
+            // put RPS buttons up and wait for click
         }
+    }).catch(function (error) {
+        console.log("Error setting ready to play");
     });
 }
-exports.playerCreated = functions.firestore
-.document('players/{playerId}')
-.onCreate(event => {
-    console.log("Player created");
-    // trigger content...
+// RPS button clicked
+$(document).on("click", ".playButtons", function (event) {
+    event.preventDefault();
+    var buttonClicked = event.target.id;
+    console.log(buttonClicked);
+    bPlayed = true;
+    const playerRef = firestore.collection('players').doc(sSelf);
+    playerRef.set({
+        sPlayed: buttonClicked
+    }).then(function () {
+        console.log(`Played ${buttonClicked}`);
+    }).catch(function (error) {
+        console.log("Error setting button clicked");
+    });
+
 });
 
-*/
+function RPSButtons(sOtherPlayer) {
+    $("#opponent").text(`You are playing against ${sOtherPlayer}`);
+    var r;
+    r = $('<input/>').attr({
+        type: "button",
+        id: "rock",
+        value: 'Rock',
+        style: "height: 40px",
+    });
+    $(".playButtons").append(r);
+    r = $('<input/>').attr({
+        type: "button",
+        id: "paper",
+        value: 'Paper',
+        style: "height: 40px",
+    });
+    $(".playButtons").append(r);
+    r = $('<input/>').attr({
+        type: "button",
+        id: "scissors",
+        value: 'Scissors',
+        style: "height: 40px",
+    });
+    $(".playButtons").append(r);
+}
+
+
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 /*

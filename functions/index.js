@@ -18,8 +18,6 @@ firebase.initializeApp(config);
 var firestore = firebase.firestore();
 //var db = admin.firestore();
 
-//admin.initializeApp(functions.config().firebase);
-
 //const docRef = firestore.collection('players').doc('b');
 // or firestore.doc ("players/Pat");
 const collRef = firestore.collection('players');
@@ -27,120 +25,138 @@ const h1 = document.querySelector("#h1");
 const newPlayer = document.querySelector("#newPlayer");
 const playButton = document.querySelector("#playBtn");
 
-var sSelf;
-var bReadyToPlay;
-var bPlayed;
+var sSelf = "";
+var sOpponent = "";
+var sSelfPlayed = "";
+var sOpponentPlayed = "";
+var bReadyToPlay = false;
+var bFirstTime = true;
 
 // "play" button
 playButton.addEventListener("click", function () {
     var bFoundUser = false;
-    var playerToAdd;
+    var sPlayerToAdd;
 
     event.preventDefault();
-    playerToAdd = newPlayer.value.trim();
-    console.log("Adding player ", playerToAdd);
-    //    const playerRef = firestore.collection('players').doc('q');
-    const playerRef = firestore.collection('players').doc(playerToAdd);
+    sPlayerToAdd = newPlayer.value.trim();
+    console.log("Adding player ", sPlayerToAdd);
+    const playerRef = firestore.collection('players').doc(sPlayerToAdd);
     playerRef.get()
         .then(doc => {
             if (doc.exists) {
                 console.log("Existing player");
             } else {
                 console.log("New player");
-                collRef.doc(playerToAdd).set({
-                    First_name: playerToAdd
+                collRef.doc(sPlayerToAdd).set({
+                    First_name: sPlayerToAdd
                 }).then(function () {
                     console.log("Player added");
                 }).catch(function (error) {
                     console.log("Error adding player");
                 });
             }
-            collRef.doc(playerToAdd).set({
-                bReadyToPlay: true
+            sSelf = sPlayerToAdd;
+            collRef.doc(sPlayerToAdd).update({
+                bReadyToPlay: true,
+                sPlayed: ""
             }).then(function () {
                 console.log("Ready to play set");
+                console.log("All set!");
+                ReadyToPlay("");
             }).catch(function (error) {
                 console.log("Error setting ready to play");
             });
-            console.log("All set!");
-            sSelf = playerToAdd;
-            ReadyToPlay("");
         });
 })
 
-/*
-loadButton.addEventListener("click", function () {
-    event.preventDefault();
-    collRef.get().then(snapshot => {
-        snapshot.forEach(doc => {
-            console.log(doc.id, doc.data(), "FN: ", doc.data().First_name);
-        });
-    }).catch(function (error) {
-        console.log("Error on loadButton");
-    });
-    docRef.get().then(doc => {
-        console.log("Finally: ", doc.data().First_name);
-    })
-})
-*/
+// hear when the other guy changes something
 var observer = collRef.onSnapshot(docSnapshot => {
-    console.log(`Received doc snapshot: ${docSnapshot}`);
-    // ...
+    //    console.log(`Received doc snapshot: ${docSnapshot}`);
+    var sPlayer;
+    docSnapshot.forEach(doc => {
+        if (doc.data().bReadyToPlay == true) { // will run twice, but never mind
+            sPlayer = doc.data().First_name;
+            if (sSelf != "" && sPlayer != sSelf) {
+                sOpponent = sPlayer;
+            }
+        }
+        if (doc.data().sPlayed != undefined && doc.data().sPlayed != "") {
+            if (doc.data().First_name != sSelf) {
+                sOpponentPlayed = doc.data().sPlayed;
+                if (sSelfPlayed != "") {
+                    // we have both played
+                    WinLose();
+                }
+            }
+        }
+    });
+    if (bReadyToPlay && (sOpponent != "")) {
+        ReadyToPlay();
+    }
 }, err => {
     console.log(`Encountered error: ${err}`);
 });
 
-function ReadyToPlay(sOtherPlayer) {
+function ReadyToPlay() {
+    if (bFirstTime === false) {
+        return;
+    }
+    console.log("Ready to play set");
+    bFirstTime = false;
+    if (sOpponent == "") {
+        bFirstTime = true;      // let us come through again
+        playerRef = collRef.where('bReadyToPlay', '==', true);
+        playerRef.get().then(snapshot => {
+            snapshot.forEach(doc => {
+                if (sOpponent === "") {
+                    sOpponent = doc.data().First_name;
+                    if (sOpponent === sSelf) {
+                        sOpponent = "";
+                    } else {
+                        console.log(`You are playing against ${sOpponent}`);
+                    }
+                }
+            });
+        });
+    } else {
+        console.log(`Playing against existing player ${sOpponent}`);
+//        RPSButtons(sOpponent);
+    }
     bReadyToPlay = true;
-    collRef.doc(sSelf).set({
+    collRef.doc(sSelf).update({
         bReadyToPlay: true
     }).then(doc => {
-        console.log("Ready to play set");
-        if (sOtherPlayer == "") {
-            //            var queryRef = citiesRef.where('state', '==', 'CA');
-            //            const docRef = firestore.collection('players').doc('Roger');
-
-            playerRef = collRef.where('bReadyToPlay', '==', true);
-            //playerRef = firestore.collection('players').where('First_name', '==', 'Roger');
-            //            const playerRef = firestore.collection('players').doc(bReadyToPlay == true);
-            playerRef.get().then(snapshot => {
-                snapshot.forEach(doc => {
-                    if (sOtherPlayer == "") {
-                        sOtherPlayer = doc.data().First_name;
-                        console.log(`You are playing against ${sOtherPlayer}`);
-                        RPSButtons(sOtherPlayer);
-                        // put RPS buttons up and then wait for click
-                    }
-                });
-            });
-        } else {
-            console.log(`Playing against existing player ${playerToAdd}`);
-            RPSButtons(sOtherPlayer);
-            // put RPS buttons up and wait for click
+        console.log("Setting ready to play");
+        if (sOpponent != "") {
+            RPSButtons(sOpponent);
         }
     }).catch(function (error) {
         console.log("Error setting ready to play");
     });
 }
+
 // RPS button clicked
 $(document).on("click", ".playButtons", function (event) {
     event.preventDefault();
-    var buttonClicked = event.target.id;
-    console.log(buttonClicked);
-    bPlayed = true;
+    sSelfPlayed = event.target.id;
+    console.log(sSelfPlayed);
+    sSelfPlayed = sSelfPlayed;
     const playerRef = firestore.collection('players').doc(sSelf);
-    playerRef.set({
-        sPlayed: buttonClicked
+    playerRef.update({
+        sPlayed: sSelfPlayed
     }).then(function () {
-        console.log(`Played ${buttonClicked}`);
+        console.log(`Played ${sSelfPlayed}`);
     }).catch(function (error) {
         console.log("Error setting button clicked");
     });
-
+    if (sOpponentPlayed != "") {
+        // we have both played
+        WinLose();
+    }
 });
 
-function RPSButtons(sOtherPlayer) {
-    $("#opponent").text(`You are playing against ${sOtherPlayer}`);
+function RPSButtons(sOpponent) {
+    $("#opponent").text(`You are playing against ${sOpponent}`);
     var r;
     r = $('<input/>').attr({
         type: "button",
@@ -163,6 +179,44 @@ function RPSButtons(sOtherPlayer) {
         style: "height: 40px",
     });
     $(".playButtons").append(r);
+}
+
+aiWinLose = [1, 0, 2, 2, 1, 0, 0, 2, 1];
+
+function WinLose() {
+    var iWinLose;
+    var iSelf = sSelfPlayed === "rock" ? 0 : sSelfPlayed === "paper" ? 1 : 2;
+    var iOpponent = sOpponentPlayed === "rock" ? 0 : sOpponentPlayed === "paper" ? 1 : 2;
+
+    iWinLose = aiWinLose[3 * iSelf + iOpponent];
+    switch (iWinLose) {
+        case 0:
+            sWL = "You lose!  :-(";
+            break;
+        case 1:
+            sWL = "Tie";
+            break;
+        case 2:
+            sWL = "You win!!!";
+            break;
+    }
+    collRef.doc(sSelf).update({
+        bReadyToPlay: false,
+        sPlayed: ""
+    }).then(function () {
+        console.log("I'm cleared out");
+    }).catch(function (error) {
+        console.log("Error clearing");
+    });
+    bReadyToPlay = false;
+    sPlayed = "";
+    sOpponent = "";
+    sOpponentPlayed = "";
+    bFirstTime = true;
+    $(".playBbuttons").remove ();
+
+    $("#result").text(sWL);
+
 }
 
 

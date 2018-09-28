@@ -16,14 +16,13 @@ var config = {
 };
 firebase.initializeApp(config);
 var firestore = firebase.firestore();
-//var db = admin.firestore();
 
-//const docRef = firestore.collection('players').doc('b');
-// or firestore.doc ("players/Pat");
 const collRef = firestore.collection('players');
 const h1 = document.querySelector("#h1");
 const newPlayer = document.querySelector("#newPlayer");
 const playButton = document.querySelector("#playBtn");
+const againButton = document.querySelector("#againBtn");
+const sendButton = document.querySelector("#sendBtn");
 
 var sSelf = "";
 var sOpponent = "";
@@ -31,6 +30,49 @@ var sSelfPlayed = "";
 var sOpponentPlayed = "";
 var bReadyToPlay = false;
 var bFirstTime = true;
+var iYourWins = 0;
+var iYourLosses = 0;
+
+$("#waiting").hide();
+$("#newPlayer").show();
+$("#playBtn").show();
+$("#againBtn").hide();
+$("#msgToSend").hide();
+$("#sendBtn").hide();
+
+// "Send" button
+sendButton.addEventListener("click", function () {
+    sendMsg(sSelf, msgToSend.value.trim());
+})
+
+function sendMsg(sOwner, sMsg) {
+    const msgRef = firestore.collection('players').doc(sOwner);
+    msgRef.update({
+        Text: sMsg
+    })
+    .then (function () {
+        console.log ('Message sent');
+        msgToSend.value = "";
+    });
+}
+
+againButton.addEventListener("click", function () {
+    //    $("#newPlayer").show();
+    //    $("#playBtn").show();
+    sendMsg(sSelf, "");
+    $("#result").text("");
+    sOpponent = "";     // we're really waiting for him
+    sSelfPlayed = "";
+    sOpponentPlayed = "";
+    $('#opponent').text ("Waiting ...");
+    bReadyToPlay = true;
+    collRef.doc(sSelf).update({
+        bReadyToPlay: bReadyToPlay
+    });
+    $(".playBtn").remove();
+    bFirstTime = true;
+    sOpponent = "";
+})
 
 // "play" button
 playButton.addEventListener("click", function () {
@@ -45,22 +87,34 @@ playButton.addEventListener("click", function () {
         .then(doc => {
             if (doc.exists) {
                 console.log("Existing player");
+                iYourWins = doc.data().iYourWins;
+                iYourLosses = doc.data().iYourLosses;
+                console.log (typeof(iYourWins));
+                if (isNaN (iYourWins)) {
+                    iYourWins = 0;
+                }
+                if (isNaN (iYourLosses)) {
+                    iYourLosses = 0;
+                }
             } else {
                 console.log("New player");
                 collRef.doc(sPlayerToAdd).set({
                     First_name: sPlayerToAdd
-                }).then(function () {
+                });
+                /*
+                .then(function () {
                     console.log("Player added");
                 }).catch(function (error) {
                     console.log("Error adding player");
                 });
+                */
             }
             sSelf = sPlayerToAdd;
             collRef.doc(sPlayerToAdd).update({
                 bReadyToPlay: true,
-                sPlayed: ""
+                sPlayed: "",
+                Text: ""
             }).then(function () {
-                console.log("Ready to play set");
                 console.log("All set!");
                 ReadyToPlay("");
             }).catch(function (error) {
@@ -74,10 +128,15 @@ var observer = collRef.onSnapshot(docSnapshot => {
     //    console.log(`Received doc snapshot: ${docSnapshot}`);
     var sPlayer;
     docSnapshot.forEach(doc => {
-        if (doc.data().bReadyToPlay == true) { // will run twice, but never mind
+        if (doc.data().bReadyToPlay == true) {
             sPlayer = doc.data().First_name;
             if (sSelf != "" && sPlayer != sSelf) {
                 sOpponent = sPlayer;
+            }
+        }
+        if (doc.data().First_name === sOpponent) {
+            if (doc.data().Text != undefined && doc.data().Text.length > 1) {
+                $("#msgRcvd").text(`${sOpponent} says: ${doc.data().Text}`);
             }
         }
         if (doc.data().sPlayed != undefined && doc.data().sPlayed != "") {
@@ -104,7 +163,7 @@ function ReadyToPlay() {
     console.log("Ready to play set");
     bFirstTime = false;
     if (sOpponent == "") {
-        bFirstTime = true;      // let us come through again
+        bFirstTime = true; // let us come through again
         playerRef = collRef.where('bReadyToPlay', '==', true);
         playerRef.get().then(snapshot => {
             snapshot.forEach(doc => {
@@ -120,7 +179,7 @@ function ReadyToPlay() {
         });
     } else {
         console.log(`Playing against existing player ${sOpponent}`);
-//        RPSButtons(sOpponent);
+        //        RPSButtons(sOpponent);
     }
     bReadyToPlay = true;
     collRef.doc(sSelf).update({
@@ -128,7 +187,15 @@ function ReadyToPlay() {
     }).then(doc => {
         console.log("Setting ready to play");
         if (sOpponent != "") {
+            $("#waiting").hide();
+            $("#newPlayer").hide();
+            $("#playBtn").hide();
+            $("#msgToSend").show();
+            $("#sendBtn").show();
             RPSButtons(sOpponent);
+        } else {
+            // set up "waiting"
+            $("#waiting").show();
         }
     }).catch(function (error) {
         console.log("Error setting ready to play");
@@ -140,7 +207,7 @@ $(document).on("click", ".playButtons", function (event) {
     event.preventDefault();
     sSelfPlayed = event.target.id;
     console.log(sSelfPlayed);
-    sSelfPlayed = sSelfPlayed;
+//    sSelfPlayed = sSelfPlayed;
     const playerRef = firestore.collection('players').doc(sSelf);
     playerRef.update({
         sPlayed: sSelfPlayed
@@ -163,6 +230,7 @@ function RPSButtons(sOpponent) {
         id: "rock",
         value: 'Rock',
         style: "height: 40px",
+        class: "playBtn"
     });
     $(".playButtons").append(r);
     r = $('<input/>').attr({
@@ -170,6 +238,7 @@ function RPSButtons(sOpponent) {
         id: "paper",
         value: 'Paper',
         style: "height: 40px",
+        class: "playBtn"
     });
     $(".playButtons").append(r);
     r = $('<input/>').attr({
@@ -177,6 +246,7 @@ function RPSButtons(sOpponent) {
         id: "scissors",
         value: 'Scissors',
         style: "height: 40px",
+        class: "playBtn"
     });
     $(".playButtons").append(r);
 }
@@ -184,37 +254,45 @@ function RPSButtons(sOpponent) {
 aiWinLose = [1, 0, 2, 2, 1, 0, 0, 2, 1];
 
 function WinLose() {
-    var iWinLose;
-    var iSelf = sSelfPlayed === "rock" ? 0 : sSelfPlayed === "paper" ? 1 : 2;
+    let iWinLose;
+    let iSelf = sSelfPlayed === "rock" ? 0 : sSelfPlayed === "paper" ? 1 : 2;
     var iOpponent = sOpponentPlayed === "rock" ? 0 : sOpponentPlayed === "paper" ? 1 : 2;
 
     iWinLose = aiWinLose[3 * iSelf + iOpponent];
     switch (iWinLose) {
         case 0:
             sWL = "You lose!  :-(";
+            iYourLosses++;
             break;
         case 1:
             sWL = "Tie";
             break;
         case 2:
             sWL = "You win!!!";
+            iYourWins++;
             break;
     }
     collRef.doc(sSelf).update({
+        iYourWins: iYourWins,
+        iYourLosses: iYourLosses,
         bReadyToPlay: false,
         sPlayed: ""
-    }).then(function () {
+    });
+    $("#yourWins").text(`Your wins: ${iYourWins}`).show();
+    $("#yourLosses").text(`Your losses: ${iYourLosses}`).show();
+    /*.then(function () {
         console.log("I'm cleared out");
     }).catch(function (error) {
         console.log("Error clearing");
-    });
+    });*/
     bReadyToPlay = false;
-    sPlayed = "";
+    sSelfPlayed = "";
     sOpponent = "";
     sOpponentPlayed = "";
     bFirstTime = true;
-    $(".playBbuttons").remove ();
 
+    $(".playBbuttons").remove();
+    $("#againBtn").show();
     $("#result").text(sWL);
 
 }

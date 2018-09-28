@@ -14,27 +14,21 @@
 </head>
 
 <body>
-    <h1 id="h1">Test</h1>
+    <h1 id="h1">RPS</h1>
     <input type="text" id="newPlayer">
     <button id="playBtn">Play</button>
 <!--    <button id="loadButton">Show</button> -->
+    <p id="waiting">Waiting for opponent</p>
     <p id="opponent"></p>
     <div class="playButtons"></div>
     <p id="result"></p>
-<!--    
-<script>
-      // Initialize Firebase
-      var config = {
-        apiKey: "AIzaSyCsDh3ra7faSCJycuwelMipu-6biTdqFMM",
-        authDomain: "rgb-rps.firebaseapp.com",
-        databaseURL: "https://rgb-rps.firebaseio.com",
-        projectId: "rgb-rps",
-        storageBucket: "rgb-rps.appspot.com",
-        messagingSenderId: "277284413470"
-      };
-      firebase.initializeApp(config);
-    </script>
-    -->
+    <input type="text" id="msgToSend">
+    <button id='sendBtn'>Send</button>
+    <p id="msgRcvd"></p>
+    <p id="yourWins"></p>
+    <p id="yourLosses"></p>
+    <button id="againBtn">Again</button>
+
     <script src="./functions/index.js"></script>
 </body>
 

@@ -72,6 +72,7 @@ againButton.addEventListener("click", function () {
     $(".playBtn").remove();
     bFirstTime = true;
     sOpponent = "";
+    $("#winLose").text ('');
 })
 
 // "play" button
@@ -257,21 +258,26 @@ function WinLose() {
     let iWinLose;
     let iSelf = sSelfPlayed === "rock" ? 0 : sSelfPlayed === "paper" ? 1 : 2;
     var iOpponent = sOpponentPlayed === "rock" ? 0 : sOpponentPlayed === "paper" ? 1 : 2;
+    var sResult;
 
     iWinLose = aiWinLose[3 * iSelf + iOpponent];
     switch (iWinLose) {
         case 0:
             sWL = "You lose!  :-(";
             iYourLosses++;
+            sResult = "loses to";
             break;
         case 1:
             sWL = "Tie";
+            sResult = "and";
             break;
         case 2:
             sWL = "You win!!!";
+            sResult = "beats";
             iYourWins++;
             break;
     }
+    $("#winLose").text (`${sSelfPlayed} ${sResult} ${sOpponentPlayed}`);
     collRef.doc(sSelf).update({
         iYourWins: iYourWins,
         iYourLosses: iYourLosses,

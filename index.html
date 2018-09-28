@@ -9,18 +9,21 @@
     <script src="https://www.gstatic.com/firebasejs/5.5.1/firebase.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.1/firebase-firestore.js"></script>
-    <link rel="stylesheet" type="text/css" href="assets/css/style.css">
+    <link rel="stylesheet" type="text/css" href="./assets/css/style.css">
     <title>RPS</title>
 </head>
 
-<body>
-    <h1 id="h1">RPS</h1>
+<body style="background-image:url('./assets/images/rps.jpg')">
+    <h1 id="h1">Rock Paper Scissors</h1>
+<!--    <div style="width:250px;height:300px;background-color: white; border-radius: 5px"> -->
+    <div id="rect">
     <input type="text" id="newPlayer">
     <button id="playBtn">Play</button>
 <!--    <button id="loadButton">Show</button> -->
     <p id="waiting">Waiting for opponent</p>
     <p id="opponent"></p>
     <div class="playButtons"></div>
+    <p id="winLose"></p>
     <p id="result"></p>
     <input type="text" id="msgToSend">
     <button id='sendBtn'>Send</button>
@@ -28,6 +31,7 @@
     <p id="yourWins"></p>
     <p id="yourLosses"></p>
     <button id="againBtn">Again</button>
+    </div>
 
     <script src="./functions/index.js"></script>
 </body>

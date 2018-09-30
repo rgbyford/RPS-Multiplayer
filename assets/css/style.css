@@ -8,15 +8,19 @@ html, body {
 
 #rect {
     width:250px;
-    height:300px;
-    background-color: white;
+    height:340px;
+    background-color: #F0FAD0;
     border-radius: 5px;
+    padding: 10px;
 }
-#rectangle {
-    top: 0%;
-    left: 0%;
-    height: 30%;
-    width: 20%;
-    background-color: white;
-    color: white;
+
+#quitBtn {
+    position: absolute;
+    top: 410px;
+    left: 60px;
+}
+
+#sendMsgText {
+    font-size: 14px;
+    margin-bottom: 5px;
 }

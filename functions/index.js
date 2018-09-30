@@ -15,6 +15,7 @@ const newPlayer = document.querySelector("#newPlayer");
 const playButton = document.querySelector("#playBtn");
 const againButton = document.querySelector("#againBtn");
 const sendButton = document.querySelector("#sendBtn");
+const quitButton = document.querySelector("#quitBtn");
 
 var sSelf = "";
 var sOpponent = "";
@@ -25,19 +26,53 @@ var iYourWins = 0;
 var iYourLosses = 0;
 var bGotOpponent = false;
 var bTooManyPlayers = false;
+var bHaveButtons = false;
 
-$("#waiting").hide();
-$("#newPlayer").show();
-$("#playBtn").show();
-$("#againBtn").hide();
-$("#msgToSend").hide();
-$("#sendBtn").hide();
-$("#sorry").hide();
+init("");
+
+function init(sPlayer) {
+    $("#yourName").show();
+    $("#waiting").hide();
+    $("#newPlayer").show();
+    $("#playBtn").show();
+    $("#againBtn").hide();
+    $("#msgToSend").hide();
+    $("#sendBtn").hide();
+    $("#sorry").hide();
+    $("#quitBtn").show();
+    $("#msgRcvd").hide();
+    $("#yourWins").hide();
+    $("#yourLosses").hide();
+    $("#opponent").text("");
+    $("#winLose").text("");
+    $("#result").text("");
+    newPlayer.value = ("");
+    sOpponent = "";
+    sSelfPlayed = "";
+    sOpponentPlayed = "";
+    bGotOpponent = false;
+    if (sPlayer != "") { // restart (else we don't know who sSelf is)
+        collRef.doc(sSelf).update({
+            bReadyToPlay: false,
+            Text: "",
+            sPlayed: "",
+            sQuit: false
+        });
+    }
+}
+
+quitButton.addEventListener("click", function () {
+    init(sSelf);
+    collRef.doc(sSelf).update({
+        sQuit: true
+    });
+
+});
 
 // "Send" button
 sendButton.addEventListener("click", function () {
     sendMsg(sSelf, msgToSend.value.trim());
-})
+});
 
 //Also called to "clear out" an old message
 function sendMsg(sOwner, sMsg) {
@@ -91,7 +126,7 @@ playButton.addEventListener("click", function () {
                     console.log("Existing player");
                     iYourWins = doc.data().iYourWins;
                     iYourLosses = doc.data().iYourLosses;
-                    console.log(typeof (iYourWins));
+                    //                    console.log(typeof (iYourWins));
                     if (isNaN(iYourWins)) {
                         iYourWins = 0;
                     }
@@ -133,7 +168,7 @@ playButton.addEventListener("click", function () {
 collRef.onSnapshot(docSnapshot => {
     var sPlayer;
     docSnapshot.forEach(doc => {
-        console.log(doc.data());
+        //        console.log(doc.data());
         if (doc.data().bReadyToPlay === true) { // opponent came online
             sPlayer = doc.data().First_name;
             if (sSelf != "" && sPlayer != sSelf) {
@@ -144,6 +179,7 @@ collRef.onSnapshot(docSnapshot => {
             doc.data().Text != undefined &&
             doc.data().Text.length > 0) {
             $("#msgRcvd").text(`${sOpponent} says: ${doc.data().Text}`);
+            $("#msgRcvd").show();
         }
         if (doc.data().sPlayed != "") {
             // someone (either me or the other guy) has played
@@ -163,6 +199,7 @@ collRef.onSnapshot(docSnapshot => {
 
 // when the player has clicked Play, or after he's hit Again
 function ReadyToPlay() {
+    $("#sorry").hide();
     if (bGotOpponent == true) {
         return;
     }
@@ -196,6 +233,8 @@ function ReadyToPlay() {
             $("#waiting").hide();
             $("#newPlayer").hide();
             $("#playBtn").hide();
+            $("#sendMsgText").text (`Message to ${sOpponent}:`);
+            $("#sendMsgText").show();
             $("#msgToSend").show();
             $("#sendBtn").show();
             RPSButtons(sOpponent);
@@ -230,31 +269,36 @@ $(document).on("click", ".playButtons", function (event) {
 // show the RPS buttons
 function RPSButtons(sOpponent) {
     $("#opponent").text(`You are playing against ${sOpponent}`);
-    var r;
-    r = $('<input/>').attr({
-        type: "button",
-        id: "rock",
-        value: 'Rock',
-        style: "height: 40px",
-        class: "playBtn"
-    });
-    $(".playButtons").append(r);
-    r = $('<input/>').attr({
-        type: "button",
-        id: "paper",
-        value: 'Paper',
-        style: "height: 40px",
-        class: "playBtn"
-    });
-    $(".playButtons").append(r);
-    r = $('<input/>').attr({
-        type: "button",
-        id: "scissors",
-        value: 'Scissors',
-        style: "height: 40px",
-        class: "playBtn"
-    });
-    $(".playButtons").append(r);
+    if (bHaveButtons) {
+        $(".playButtons").show();
+    } else {
+        var r;
+        r = $('<input/>').attr({
+            type: "button",
+            id: "rock",
+            value: 'Rock',
+            style: "height: 40px; background-color: gray",
+            class: "playBtn",
+        });
+        $(".playButtons").append(r);
+        r = $('<input/>').attr({
+            type: "button",
+            id: "paper",
+            value: 'Paper',
+            style: "height: 40px; background-color: white",
+            class: "playBtn"
+        });
+        $(".playButtons").append(r);
+        r = $('<input/>').attr({
+            type: "button",
+            id: "scissors",
+            value: 'Scissors',
+            style: "height: 40px; background-color: #e2dedeb",
+            class: "playBtn"
+        });
+        $(".playButtons").append(r);
+        bHaveButtons = true;
+    }
 }
 
 aiWinLose = [1, 0, 2, 2, 1, 0, 0, 2, 1];
